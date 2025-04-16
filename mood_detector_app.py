@@ -1,41 +1,39 @@
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
-from fer import FER
-import av
 import numpy as np
-from PIL import Image
+from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, WebRtcMode
 
-st.set_page_config(page_title="MoodMate", layout="centered")
-st.title("😊 MoodMate - AI Mood Detector")
-st.write("Let’s detect your mood from your face using your webcam!")
+# Mock Emotion Detection Class
+class MockEmotionModel:
+    def predict(self, frame):
+        # Simulating a prediction with random emotions
+        emotions = ['Happy', 'Sad', 'Angry', 'Surprised', 'Neutral']
+        return np.random.choice(emotions)
 
-# Load FER emotion detector
-detector = FER(mtcnn=True)
+# Video Processor
+class VideoProcessor(VideoProcessorBase):
+    def __init__(self):
+        self.model = MockEmotionModel()
 
-class EmotionDetector(VideoTransformerBase):
-    def transform(self, frame):
-        img = frame.to_ndarray(format="bgr24")  # Convert frame to BGR format
+    def recv(self, frame):
+        # Simulate emotion prediction on the frame
+        emotion = self.model.predict(frame)
+        st.session_state['emotion'] = emotion  # Save predicted emotion in session state
+        return frame
 
-        # Detect emotions using FER (returns best detected face and emotions)
-        result = detector.top_emotion(img)
-        
-        # Draw results on frame
-        if result is not None:
-            emotion, score = result
-            text = f"{emotion} ({score*100:.1f}%)"
-            cv_frame = img.copy()
-            cv2.putText(cv_frame, text, (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            return cv_frame
-        else:
-            return img
+# Streamlit App Layout
+st.title("MoodMate: Webcam-Based Mood Detection")
 
-# Stream from webcam
+# Show video streaming
 webrtc_streamer(
-    key="mood",
-    video_processor_factory=EmotionDetector,
-    media_stream_constraints={"video": True, "audio": False},
-    async_processing=True,
+    key="example",
+    mode=WebRtcMode.SENDRECV,
+    video_processor_factory=VideoProcessor,
+    async_mode=True,
 )
 
-st.markdown("---")
-st.info("Make sure your webcam is turned on. Your mood will be detected live.")
+# Display the detected emotion
+if 'emotion' in st.session_state:
+    st.write(f"Detected Emotion: {st.session_state['emotion']}")
+
+# Footer/Disclaimer
+st.markdown("Thank you for using the app❤️.")
