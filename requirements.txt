@@ -1,6 +1,5 @@
 streamlit
-opencv-python
+opencv-python==4.7.0
 streamlit-webrtc
-deepface
-tensorflow
-keras
+deepface==0.0.75
+tensorflow==2.12.0
