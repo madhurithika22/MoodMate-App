@@ -1,43 +1,41 @@
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
-from deepface import DeepFace
-from PIL import Image
-import numpy as np
+from fer import FER
 import av
+import numpy as np
+from PIL import Image
 
-st.set_page_config(page_title="MoodMate - Real-time Mood Detector", layout="centered")
-st.title("😊 MoodMate - Real-time Mood Detector")
-st.markdown("Detect your **mood** instantly through webcam!")
+st.set_page_config(page_title="MoodMate", layout="centered")
+st.title("😊 MoodMate - AI Mood Detector")
+st.write("Let’s detect your mood from your face using your webcam!")
 
-mood_placeholder = st.empty()
+# Load FER emotion detector
+detector = FER(mtcnn=True)
 
-# Define emotion detection logic
-def detect_emotion(image):
-    try:
-        result = DeepFace.analyze(image, actions=['emotion'], enforce_detection=False)
-        emotion = result[0]['dominant_emotion']
-        return emotion
-    except Exception as e:
-        return "Error"
-
-# Streamlit WebRTC video transformer
 class EmotionDetector(VideoTransformerBase):
     def transform(self, frame):
-        img = frame.to_ndarray(format="bgr24")
-        img_rgb = img[:, :, ::-1]  # Convert BGR to RGB
-        emotion = detect_emotion(Image.fromarray(img_rgb))
+        img = frame.to_ndarray(format="bgr24")  # Convert frame to BGR format
 
-        # Display mood
-        mood_placeholder.markdown(f"### 🧠 Detected Mood: **{emotion.capitalize()}**")
-        return frame
+        # Detect emotions using FER (returns best detected face and emotions)
+        result = detector.top_emotion(img)
+        
+        # Draw results on frame
+        if result is not None:
+            emotion, score = result
+            text = f"{emotion} ({score*100:.1f}%)"
+            cv_frame = img.copy()
+            cv2.putText(cv_frame, text, (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            return cv_frame
+        else:
+            return img
 
-# Start webcam stream
+# Stream from webcam
 webrtc_streamer(
-    key="mood_detector",
-    video_transformer_factory=EmotionDetector,
+    key="mood",
+    video_processor_factory=EmotionDetector,
     media_stream_constraints={"video": True, "audio": False},
-    async_transform=True
+    async_processing=True,
 )
 
 st.markdown("---")
-st.info("Built with ❤️")
+st.info("Make sure your webcam is turned on. Your mood will be detected live.")
