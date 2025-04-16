@@ -1,6 +1,6 @@
 import streamlit as st
 import numpy as np
-from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, WebRtcMode
+from streamlit_webrtc import webrtc_streamer, WebRtcMode, VideoProcessorBase
 
 # Mock Emotion Detection Class
 class MockEmotionModel:
@@ -28,6 +28,10 @@ webrtc_streamer(
     key="example",
     mode=WebRtcMode.SENDRECV,
     video_processor_factory=VideoProcessor,
+    media_stream_constraints={
+        "video": True,
+        "audio": False
+    },
     async_mode=True,
 )
 
@@ -36,4 +40,4 @@ if 'emotion' in st.session_state:
     st.write(f"Detected Emotion: {st.session_state['emotion']}")
 
 # Footer/Disclaimer
-st.markdown("Thank you for using the app❤️.")
+st.markdown("With love ❤️")
